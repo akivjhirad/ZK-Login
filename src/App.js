@@ -11,6 +11,7 @@ function App() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const Zk = require("@nuid/zk");
 
+  /*
   // User Login info
   const database = [
     {
@@ -22,6 +23,7 @@ function App() {
       password: "pass2"
     }
   ];
+  */
 
   const errors = {
     uname: "invalid username",
@@ -35,32 +37,38 @@ function App() {
     var { uname, pass } = document.forms[0];
 
     // client context, registration, creates new secret associated with user
-    const secret = pass.value;
-    const c_verifiable = Zk.verifiableFromSecret(secret);
-    const json = JSON.stringify(c_verifiable); // Keygen
+    const secret = uname.value + pass.value;
+    const client_verifiable = Zk.verifiableFromSecret(secret);
+    const json = JSON.stringify(client_verifiable); // Keygen
 
     // server context, registration, saves Keygen + cred metadata from client, sends to NuID
-    const s_verifiable = JSON.parse(json);
-    Zk.isVerified(s_verifiable);
-    //Keygen and cred metadata appended to DLT/DB
-    const credential = Zk.credentialFromVerifiable(s_verifiable); // persist credential (db, ledger, ...)
+    const server_verifiable = JSON.parse(json);
+    Zk.isVerified(server_verifiable);
+    //Keygen and cred metadata appended to DLT/DB so cred metadata is public + verifiable
+    const client_credential = Zk.credentialFromVerifiable(server_verifiable); // persist credential (db, ledger, ...)
 
     // server context, login step 1, server provides challenge to client using cred from dlt
-    const challenge = Zk.defaultChallengeFromCredential(credential); // retrieve credential (db, ledger, ...)
-    const json2 = JSON.stringify(challenge);
+    const challengeToClient = Zk.defaultChallengeFromCredential(
+      client_credential
+    ); // retrieve credential (db, ledger, ...)
+    //    const json2 = JSON.stringify(challengeToClient);
 
     // client context, login, generates proof using secret (i.e. password) and challenge (i.e. pairing key)
-    const challenge2 = JSON.parse(json2);
-    const proof = Zk.proofFromSecretAndChallenge("hello", challenge2);
+    //    const clientChallenge = JSON.parse(json2);
+    const proof = Zk.proofFromSecretAndChallenge(secret, challengeToClient);
     const json3 = JSON.stringify(proof);
 
     // server context, login step 2, check client proof
-    const proof2 = JSON.parse(json3);
-    const verifiable = Zk.verifiableFromProofAndChallenge(proof2, challenge2);
+    const verify_proof = JSON.parse(json3);
+    const verifiable = Zk.verifiableFromProofAndChallenge(
+      verify_proof,
+      challengeToClient
+    );
     Zk.isVerified(verifiable)
       ? console.log("verified")
       : console.error("unverified");
 
+    /*
     // Find user login info, true if correct username is entered
     const userData = database.find((user) => user.username === uname.value);
 
@@ -74,8 +82,9 @@ function App() {
       }
     } else {
       // Username not found
-      setErrorMessages({ name: "uname", message: Zk.isVerified(verifiable) });
+      setErrorMessages({ name: "uname", message: secret });
     }
+    */
   };
 
   // Generate JSX code for error message
