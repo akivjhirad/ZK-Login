@@ -3,7 +3,7 @@ import ReactDOM from "react-dom";
 
 import "./styles.css";
 
-import "@nuid/zk";
+import "@nuid/zk"; //https://portal.nuid.io/docs/client/web
 
 function App() {
   // React States
@@ -37,34 +37,27 @@ function App() {
     var { uname, pass } = document.forms[0];
 
     // client context, registration, creates new secret associated with user
-    const secret = uname.value + pass.value;
-    const client_verifiable = Zk.verifiableFromSecret(secret);
-    const json = JSON.stringify(client_verifiable); // Keygen
+    const secret = uname.value + pass.value; //generally password is the 'secret', uname stored by server with associated identifier
+    const client_verifiable = Zk.verifiableFromSecret(secret); // Keygen for client
 
     // server context, registration, saves Keygen + cred metadata from client, sends to NuID
-    const server_verifiable = JSON.parse(json);
-    Zk.isVerified(server_verifiable);
-    //Keygen and cred metadata appended to DLT/DB so cred metadata is public + verifiable
-    const client_credential = Zk.credentialFromVerifiable(server_verifiable); // persist credential (db, ledger, ...)
+    Zk.isVerified(client_verifiable);
+    //Keygen and cred metadata appended to DLT/DB by NuID so cred metadata is public + verifiable
+    const client_credential = Zk.credentialFromVerifiable(client_verifiable); // persist credential (db, ledger, ...)
 
-    // server context, login step 1, server provides challenge to client using cred from dlt
-    const challengeToClient = Zk.defaultChallengeFromCredential(
-      client_credential
-    ); // retrieve credential (db, ledger, ...)
-    //    const json2 = JSON.stringify(challengeToClient);
+    // server context, login step 1, server provides challenge to client using cred from dlt given by NuID
+    const challenge = Zk.defaultChallengeFromCredential(client_credential); // retrieve credential by NuID (db, ledger, ...)
 
     // client context, login, generates proof using secret (i.e. password) and challenge (i.e. pairing key)
-    //    const clientChallenge = JSON.parse(json2);
-    const proof = Zk.proofFromSecretAndChallenge(secret, challengeToClient);
-    const json3 = JSON.stringify(proof);
+    const proof = Zk.proofFromSecretAndChallenge(secret, challenge); //challenge provided by server
 
     // server context, login step 2, check client proof
-    const verify_proof = JSON.parse(json3);
-    const verifiable = Zk.verifiableFromProofAndChallenge(
-      verify_proof,
-      challengeToClient
+    const server_verifiable = Zk.verifiableFromProofAndChallenge(
+      proof,
+      challenge
     );
-    Zk.isVerified(verifiable)
+
+    Zk.isVerified(server_verifiable)
       ? console.log("verified")
       : console.error("unverified");
 
